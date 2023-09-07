@@ -11,10 +11,16 @@ router = fastapi.APIRouter(
 @router.post("/", status_code=fastapi.status.HTTP_201_CREATED, response_model=schemas.UserOut)
 async def create_user(user: schemas.UserCreate, db: Session = fastapi.Depends(get_db)):
     
+    find_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if find_user:
+        raise fastapi.HTTPException(
+            status_code=fastapi.status.HTTP_400_BAD_REQUEST,
+            detail=f"user with email {user.email} already exists")
+    
     #hashing the password
     hashed_password = utils.hash(user.password)
     user.password = hashed_password
-
+    
     new_user = models.User(**user.dict())
     db.add(new_user)
     db.commit()
